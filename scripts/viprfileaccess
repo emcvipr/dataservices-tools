@@ -1,0 +1,128 @@
+#!/usr/bin/python
+import sys
+import os
+import getopt
+import pprint
+from viprdatacli.fileaccess import ViprFileAccess, ViprScriptError, _get_peer_facing_ip
+
+def print_exports(xml):
+    mount_map = {}
+    mounts = xml['mountPoints']
+    if type(mounts) != list: mounts = [mounts]
+    print 'all exports:'
+    for mount in mounts:
+        print '--%s' % mount
+        mount_map[no_unicode(mount)] = []
+    for obj in xml['objects']:
+        mount_map[no_unicode(obj['deviceExport'])].append({no_unicode(obj['name']): no_unicode(obj['relativePath'])})
+    
+    print
+    for mount in mount_map:
+        print 'objects under export'
+        print '--%s:' % mount
+        for obj in mount_map[mount]:
+            for name in obj:
+                print'----object_name: %s' % name
+                print'------object_path: %s' % obj[name]
+        print
+
+def no_unicode(string):
+    if type(string) == unicode:
+        return string.encode()
+    return string
+
+def cliHelp(script_name):
+    print 'usage:'
+    print '    %s -k <access_key> -s <secret_key> [..] <action> <bucket> [mode]' % script_name
+    print 'options:'
+    print '    -h                 : print this help text'
+    print '    -e <endpoint>      : specify the data node endpoint (required if'
+    print '                         the BOURNE_DATA_IPADDR env var is not set)'
+    print '    -k <access_key>    : specify your vipr access_key (this key must'
+    print '                         own the bucket)'
+    print '    -s <secret_key>    : the secret key associated with the access key'
+    print '    -n <namespace>     : specify the namespace of the tenant (optional)'
+    print '    -t <token>         : specify the token; will only export objects'
+    print '                         newer than the token'
+    print '    -d <minutes>       : specify the duration the export will last'
+    print '                         in minutes (defaults to 60 minutes)'
+    print '    -u <local_uid>     : specify the client uid which should have'
+    print '                         access to the mounted files (defaults to the'
+    print '                         uid running this script)'
+    print '    -H <hosts>         : specify the set of hosts allowed to access'
+    print '                         the exports (defaults to the host running'
+    print '                         this script)'
+    print '    action             : the action to perform. can be one of [getmode,'
+    print '                         setmode, getaccess]'
+    print '    bucket             : the bucket containing the objects to export'
+    print '    mode               : the access mode to set for the objects. may'
+    print '                         be one of [readOnly, readWrite, disabled].'
+    print '                         *required for the setmode action.'
+    
+#main
+if __name__ == '__main__':
+    #----------------------------------------------------------------------
+    # command-line parsing
+    #----------------------------------------------------------------------
+    action = endpoint = key = secret = namespace = bucket = token = hosts = ''
+    duration = 60
+    uid = os.getuid()
+    
+    opts, leftover = getopt.getopt(sys.argv[1:], "he:k:s:n:t:d:u:H:")
+    options = dict(opts)
+    
+    if ("-h" in options):
+        cliHelp(sys.argv[0])
+        exit(1)
+        
+    if ("-e" in options):
+        endpoint = options["-e"]
+    if ("-k" in options):
+        key = options["-k"]
+    if ("-s" in options):
+        secret = options["-s"]
+    if ("-n" in options):
+        namespace = options["-n"]
+    if ("-t" in options):
+        token = options["-t"]
+    if ("-d" in options):
+        duration = options["-d"]
+    if ("-u" in options):
+        uid = options["-u"]
+    if ("-H" in options):
+        hosts = options["-H"]
+    api = "s3" #TODO: support swift??
+    
+    if (leftover and len(leftover) >= 2):
+        action = leftover[0]
+        bucket = leftover[1]
+        if (len(leftover) >= 3): mode = leftover[2]
+    
+    if (not key or not secret or not bucket or not action):
+        cliHelp(sys.argv[0])
+        exit(1)
+    
+    if (not endpoint):
+        try:
+            endpoint = os.environ['BOURNE_DATA_IPADDR']
+        except:
+            print 'you must specify an endpoint with -e <endpoint> or in the BOURNE_DATA_IPADDR env var'
+            exit(1)
+    
+    if (not hosts): hosts = _get_peer_facing_ip(endpoint)
+    
+    fa = ViprFileAccess(api, endpoint, key, secret)
+    
+    try:
+        if action == 'getmode':
+            pprint.pprint(fa._get_bucket_mode(namespace, bucket))
+        elif action == 'setmode':
+            pprint.pprint(fa._set_bucket_mode(namespace, bucket, mode, hosts, duration, token, uid))
+        elif action == 'getaccess':
+            print_exports(fa._get_bucket_access(namespace, bucket))
+        else:
+            cliHelp(sys.argv[0])
+            exit(1)
+    except ViprScriptError as e:
+        print e
+        exit(2)

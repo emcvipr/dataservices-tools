@@ -1,0 +1,76 @@
+#!/usr/bin/python
+import sys
+import os
+import getopt
+from viprdatacli.fileaccess import ViprMount, ViprScriptError, _get_peer_facing_ip
+
+def cliHelp(script_name):
+    print 'usage:'
+    print '    ' + script_name + ' -b <bucket> -k <access_key> -s <secret_key> [..] [local_dir]'
+    print 'other options:'
+    print '    -h                 : print this help text'
+    print '    -r                 : mount read-only'
+    print '    -e <endpoint>      : specify the data node endpoint (required if'
+    print '                         the BOURNE_DATA_IPADDR env var is not set)' 
+    print '    -t <token>         : specify the accessmode token; will only'
+    print '                         mount objects newer than the token'
+    print '    -d <minutes>       : specify the duration the mount will last'
+    print '                         in minutes (defaults to 60 minutes)'
+    print '    local_dir          : specify the local directory under which mount'
+    print '                         points will be created (defaults to .)'
+
+#main
+if __name__ == '__main__':
+    #----------------------------------------------------------------------
+    # command-line parsing
+    #----------------------------------------------------------------------
+    endpoint = key = secret = namespace = bucket = token = readonly = ''
+    parent_dir = '.'
+    duration = 60
+    
+    opts, leftover = getopt.getopt(sys.argv[1:], "hre:n:b:k:s:t:d:l:")
+    options = dict(opts)
+    
+    if ("-h" in options):
+        cliHelp(sys.argv[0])
+        exit(1)
+        
+    if ("-r" in options):
+        readonly = True
+    if ("-e" in options):
+        endpoint = options["-e"]
+    if ("-n" in options):
+        namespace = options["-n"]
+    if ("-b" in options):
+        bucket = options["-b"]
+    if ("-k" in options):
+        key = options["-k"]
+    if ("-s" in options):
+        secret = options["-s"]
+    if ("-t" in options):
+        token = options["-t"]
+    if ("-d" in options):
+        duration = options["-d"]
+    uid = os.getuid()
+    api = "s3" #TODO: support swift??
+    if (leftover): parent_dir = leftover[0]
+    
+    if (not bucket or not key or not secret):
+        cliHelp(sys.argv[0])
+        exit(1)
+    
+    if (not endpoint):
+        try:
+            endpoint = os.environ['BOURNE_DATA_IPADDR']
+        except:
+            print 'you must specify an endpoint with -e <endpoint> or in the BOURNE_DATA_IPADDR env var'
+            exit(1)
+    
+    hosts = _get_peer_facing_ip(endpoint)
+
+    try:    
+        vmount = ViprMount(api, endpoint, key, secret, namespace, bucket, token, hosts, readonly, uid, duration, parent_dir)
+        vmount.execute()
+    except ViprScriptError as e:
+        print e
+        exit(2)
