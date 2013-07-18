@@ -13,11 +13,11 @@ def read(fname):
 
 setup(
     name='vipr-data-cli',
-    version='0.2',
+    version='0.3',
     include_package_data=True,
     description='EMC ViPR data-services: NFS mount scripts for object buckets',
     author='EMC',
-    author_email='christopher.arnett@emc.com',
+    author_email='ViPR.EAP.Feedback@emc.com',
     license='BSD',
     keywords='emc vipr dataservices nfs mount object bucket',
     url='',

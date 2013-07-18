@@ -162,7 +162,8 @@ class ViprMount(ViprFileAccess):
 class ViprUmount(ViprMount):
     def __init__(self, parent_dir):
         mount_info = ViprMountInfo.read(parent_dir)
-        duration = (mount_info.expires - datetime.datetime.now()).total_seconds()
+        timedelta = mount_info.expires - datetime.datetime.now()
+        duration = timedelta.seconds + timedelta.days * 24 * 3600
         super(ViprUmount, self).__init__(mount_info.api, mount_info.endpoint,
                                          mount_info.key, mount_info.secret,
                                          mount_info.namespace, mount_info.bucket,
@@ -192,7 +193,8 @@ class ViprUmount(ViprMount):
         mode = 'disabled'
         self._set_bucket_mode(self.namespace, self.bucket, mode, self.hosts, None,
                               self.end_token, self.uid)
-        self._wait_for(self.namespace, self.bucket, mode)
+        # TODO: handle parallel workflows here (might not end up in "disabled")
+        #self._wait_for(self.namespace, self.bucket, mode)
         
         # delete config file if successful
         self.mount_info.clean()
@@ -206,6 +208,7 @@ class ViprMountInfo:
             raise ViprScriptError('%s does not appear to be a ViPR mount location' % parent_dir)
         f = open(config_file, 'r')
         dct = json.loads(f.read(), object_hook=_info_decoder)
+        dct['parent_dir'] = parent_dir
         info = ViprMountInfo(**dct)
         f.close()
         return info
@@ -223,7 +226,7 @@ class ViprMountInfo:
         self.hosts = hosts
         self.uid = uid
         self.mounts = mounts
-        self.config_file = os.path.join(self.parent_dir, '.viprmount.json')
+        self.config_file = os.path.join(parent_dir, '.viprmount.json')
         
     def write(self):
         f = open(self.config_file, 'w')
@@ -287,6 +290,10 @@ def _do_unmount(mount_point):
 
 date_regex = re.compile('^new Date\(([0-9]+)\)')
 def _info_decoder(dct):
+    # Python 2.6 requires str keywords
+    dct = dict((key.encode() if isinstance(key, unicode) else key,
+                value.encode() if isinstance(value, unicode) else value)
+               for (key, value) in dct.items())
     if 'config_file' in dct: del dct['config_file']
     for key in dct:
         if not isinstance(dct[key], basestring): continue
