@@ -43,7 +43,8 @@ def cliHelp(script_name):
     print '    -s <secret_key>    : the secret key associated with the access key'
     print '    -n <namespace>     : specify the namespace of the tenant (optional)'
     print '    -t <token>         : specify the token; will only export objects'
-    print '                         newer than the token'
+    print '                         newer than or disable objects older than the'
+    print '                         token'
     print '    -d <minutes>       : specify the duration the export will last'
     print '                         in minutes (defaults to 60 minutes)'
     print '    -u <local_uid>     : specify the client uid which should have'
@@ -64,7 +65,7 @@ if __name__ == '__main__':
     #----------------------------------------------------------------------
     # command-line parsing
     #----------------------------------------------------------------------
-    action = endpoint = key = secret = namespace = bucket = token = hosts = ''
+    action = endpoint = key = secret = namespace = bucket = token = hosts = None
     duration = 60
     uid = os.getuid()
     
@@ -92,6 +93,13 @@ if __name__ == '__main__':
     if ("-H" in options):
         hosts = options["-H"]
     api = "s3" #TODO: support swift??
+    
+    # convert to seconds
+    try:
+        duration = int(duration) * 60
+    except ValueError:
+        print 'duration must be a number (minutes)'
+        exit(1)
     
     if (leftover and len(leftover) >= 2):
         action = leftover[0]
@@ -123,6 +131,6 @@ if __name__ == '__main__':
         else:
             cliHelp(sys.argv[0])
             exit(1)
-    except ViprScriptError as e:
+    except Exception as e:
         print e
         exit(2)

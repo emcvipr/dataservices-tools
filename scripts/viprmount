@@ -12,6 +12,10 @@ def cliHelp(script_name):
     print '    -r                 : mount read-only'
     print '    -e <endpoint>      : specify the data node endpoint (required if'
     print '                         the BOURNE_DATA_IPADDR env var is not set)' 
+    print '    -k <access_key>    : specify your vipr access_key (this key must'
+    print '                         own the bucket)'
+    print '    -s <secret_key>    : the secret key associated with the access key'
+    print '    -b <bucket>        : the bucket containing the objects to export'
     print '    -t <token>         : specify the accessmode token; will only'
     print '                         mount objects newer than the token'
     print '    -d <minutes>       : specify the duration the mount will last'
@@ -24,7 +28,7 @@ if __name__ == '__main__':
     #----------------------------------------------------------------------
     # command-line parsing
     #----------------------------------------------------------------------
-    endpoint = key = secret = namespace = bucket = token = readonly = ''
+    endpoint = key = secret = namespace = bucket = token = readonly = None
     parent_dir = '.'
     duration = 60
     
@@ -71,6 +75,6 @@ if __name__ == '__main__':
     try:    
         vmount = ViprMount(api, endpoint, key, secret, namespace, bucket, token, hosts, readonly, uid, duration, parent_dir)
         vmount.execute()
-    except ViprScriptError as e:
+    except Exception as e:
         print e
         exit(2)
