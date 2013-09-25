@@ -82,7 +82,7 @@ class ViprMount(ViprFileAccess):
         self.parent_dir = parent_dir
         
     def execute(self):
-        print 'exporting %s:%s/%s to %s:%s as %s' % (self.key, self.namespace, self.bucket, self.hosts, self.parent_dir, self.uid)
+        print 'exporting %s:%s/%s to %s:%s as %s' % (self.key, self.namespace or '', self.bucket, self.hosts, self.parent_dir, self.uid)
         if (self.token):
             print 'with token ' + self.token
         if (self.readonly):
@@ -109,7 +109,10 @@ class ViprMount(ViprFileAccess):
         for export in exports:
             mount_count += 1
             mounts[export] = 'mount%d' % mount_count
-            _do_mount(export, '%s/%s' % (self.parent_dir, mounts[export]))
+            if os.name == 'nt':
+                mounts[export] = _do_mount(export, '%s/%s' % (self.parent_dir, mounts[export]))
+            else:
+                _do_mount(export, '%s/%s' % (self.parent_dir, mounts[export]))
         
         # list object locations
         print
@@ -138,7 +141,10 @@ class ViprMount(ViprFileAccess):
         for obj in objects:
             export = obj['deviceExport']
             relpath = obj['relativePath']
-            path = os.path.join('%s/%s' % (self.parent_dir, mounts[export]), relpath)
+            if os.name == "nt":
+                path = os.path.join(mounts[export], relpath.replace('/','\\'))
+            else:
+                path = os.path.join('%s/%s' % (self.parent_dir, mounts[export]), relpath)
             # wPath = path.replace("/", "\\")
             print  "%s\t%s" % (obj['name'], path)
             
@@ -178,11 +184,14 @@ class ViprUmount(ViprMount):
         mounts = self.mount_info.mounts.copy();
         for export in self.mount_info.mounts:
             try:
-                _do_unmount('%s/%s' % (self.parent_dir, self.mount_info.mounts[export]))
+                if os.name == 'nt':
+                    _do_unmount(self.mount_info.mounts[export])
+                else:
+                    _do_unmount('%s/%s' % (self.parent_dir, self.mount_info.mounts[export]))
                 del mounts[export]
             except Exception as e:
                 # don't fail the process if unmounting fails (user can fix that)
-                print 'unmounting %s/%s failed: %s' % (self.parent_dir, self.mount_info.mounts[export], e)
+                print e
 
         # keep track of mounts so user can call script again on failures
         self._write_config(mounts, self.end_token)
@@ -234,8 +243,9 @@ class ViprMountInfo:
         f.close()
         
     def clean(self):
-        for export in self.mounts:
-            os.rmdir('%s/%s' % (self.parent_dir, self.mounts[export]))
+        if os.name != 'nt':
+            for export in self.mounts:
+                os.rmdir('%s/%s' % (self.parent_dir, self.mounts[export]))
         os.remove(self.config_file)
 #/ViprMountInfo
     
@@ -248,6 +258,8 @@ def _get_peer_facing_ip(peer_address):
     return ip
 
 def _do_mount(export_point, mount_point):
+    if os.name == 'nt':
+        mount_point = 'the next drive letter'
     print 'mounting %s to %s' % (export_point, mount_point)
     if os.name == "nt":
         cmd = "mount %s *" % export_point
@@ -258,35 +270,26 @@ def _do_mount(export_point, mount_point):
 
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
 
-    (out, unused_err) = process.communicate()
+    (out, err) = process.communicate()
     if process.returncode != 0:
-        raise IOError("ERROR: failed to mount %s" % (export_point))
+        raise IOError("ERROR: failed to mount %s\n%s%s" % (export_point, out, err))
 
     if os.name == "nt":
         # Windows print a message to indicate where is mounted
         mount_point = os.path.join(out[0:2], os.path.sep)
+    
+    return mount_point
         
 def _do_unmount(mount_point):
+    if os.name != 'nt':
+        mount_point = os.path.abspath(mount_point)
     print 'unmounting %s' % (mount_point)
-    process = subprocess.Popen("mount", shell=True, stdout=subprocess.PIPE)
-    (out, unused_err) = process.communicate()
+
+    process = subprocess.Popen("umount %s" % mount_point, shell=True, stdout=subprocess.PIPE)
+    
+    (out, err) = process.communicate()
     if process.returncode != 0:
-        raise IOError("ERROR: failed to get mount list")
-    # TODO: we just remove all mounts which have 'storageos' in the export path
-    lines = out.splitlines()
-    for line in lines:
-        if os.name == 'nt':
-            if line.find('storageos') >= 0:
-                process = subprocess.Popen("umount %s" % line[0:2], shell=True, stdout=subprocess.PIPE)
-                process.wait()
-                if process.returncode != 0:
-                    sys.stderr.write("ERROR: failed to umount %s" % line[0:2])
-        else:
-            if line.find(mount_point) >= 0:
-                process = subprocess.Popen("umount %s" % mount_point, shell=True, stdout=subprocess.PIPE)
-                process.wait()
-                if process.returncode != 0:
-                    sys.stderr.write("ERROR: failed to umount %s" % mount_point)
+        raise IOError("ERROR: failed to umount %s\n%s%s" % (mount_point, out, err))
 
 date_regex = re.compile('^new Date\(([0-9]+)\)')
 def _info_decoder(dct):

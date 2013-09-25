@@ -22,6 +22,8 @@ def cliHelp(script_name):
     print '                         in minutes (defaults to 60 minutes)'
     print '    local_dir          : specify the local directory under which mount'
     print '                         points will be created (defaults to .)'
+    print '                         unnecessary on Windows (mounts will be'
+    print '                         drive letters)'
 
 #main
 if __name__ == '__main__':
@@ -55,7 +57,10 @@ if __name__ == '__main__':
         token = options["-t"]
     if ("-d" in options):
         duration = options["-d"]
-    uid = os.getuid()
+    if os.name == "nt":
+        uid = 1001 #Registry settings are needed to set the anon UID in Windows
+    else:
+        uid = os.getuid()
     api = "s3" #TODO: support swift??
     if (leftover): parent_dir = leftover[0]
     

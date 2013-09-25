@@ -6,6 +6,11 @@ To Install:
 
 # python setup.py install
 
+On Windows you will also need to import the WinNFSClient.reg file.  Double-click
+the file and allow the import.  This will set the NFS anonymous UID to match
+the exported UID so you can access the files.  After this action, you must
+restart the OS.
+
 ==================
 = viprfileaccess =
 ==================

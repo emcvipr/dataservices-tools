@@ -67,7 +67,10 @@ if __name__ == '__main__':
     #----------------------------------------------------------------------
     action = endpoint = key = secret = namespace = bucket = token = hosts = None
     duration = 60
-    uid = os.getuid()
+    if os.name == "nt":
+        uid = 1001 #Registry settings are needed to set the anon UID in Windows
+    else:
+        uid = os.getuid()
     
     opts, leftover = getopt.getopt(sys.argv[1:], "he:k:s:n:t:d:u:H:")
     options = dict(opts)
