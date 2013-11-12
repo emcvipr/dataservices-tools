@@ -3,7 +3,7 @@ import sys
 import os
 import getopt
 import pprint
-from viprdatacli.fileaccess import ViprFileAccess, ViprScriptError, _get_peer_facing_ip
+from viprdatacli.fileaccess import ViprFileAccess, _get_peer_facing_ip
 
 def print_exports(xml):
     mount_map = {}
@@ -59,6 +59,10 @@ def cliHelp(script_name):
     print '    mode               : the access mode to set for the objects. may'
     print '                         be one of [readOnly, readWrite, disabled].'
     print '                         *required for the setmode action.'
+    print ''
+    print 'Note: you must call setmode to set the mode of the bucket to'
+    print '      readOnly or readWrite before calling getaccess, otherwise'
+    print '      getaccess will return an error.'
     
 #main
 if __name__ == '__main__':

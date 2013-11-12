@@ -2,7 +2,7 @@
 import sys
 import os
 import getopt
-from viprdatacli.fileaccess import ViprMount, ViprScriptError, _get_peer_facing_ip
+from viprdatacli.fileaccess import ViprMount, _get_peer_facing_ip
 
 def cliHelp(script_name):
     print 'usage:'
@@ -20,6 +20,9 @@ def cliHelp(script_name):
     print '                         mount objects newer than the token'
     print '    -d <minutes>       : specify the duration the mount will last'
     print '                         in minutes (defaults to 60 minutes)'
+    print '    -u <local_uid>     : specify the client uid which should have'
+    print '                         access to the mounted files (defaults to the'
+    print '                         uid running this script)'
     print '    local_dir          : specify the local directory under which mount'
     print '                         points will be created (defaults to .)'
     print '                         unnecessary on Windows (mounts will be'
@@ -61,6 +64,8 @@ if __name__ == '__main__':
         uid = 1001 #Registry settings are needed to set the anon UID in Windows
     else:
         uid = os.getuid()
+    if ("-u" in options):
+        uid = options["-u"]
     api = "s3" #TODO: support swift??
     if (leftover): parent_dir = leftover[0]
     
