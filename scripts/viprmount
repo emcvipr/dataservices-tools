@@ -15,6 +15,7 @@ def cliHelp(script_name):
     print '    -k <access_key>    : specify your vipr access_key (this key must'
     print '                         own the bucket)'
     print '    -s <secret_key>    : the secret key associated with the access key'
+    print '    -n <namespace>     : specify the namespace of the tenant (optional)'
     print '    -b <bucket>        : the bucket containing the objects to export'
     print '    -t <token>         : specify the accessmode token; will only'
     print '                         mount objects newer than the token'
@@ -27,6 +28,8 @@ def cliHelp(script_name):
     print '                         points will be created (defaults to .)'
     print '                         unnecessary on Windows (mounts will be'
     print '                         drive letters)'
+    print 'NOTE: specifying a client UID of 0 is not recommended and may fail.'
+    print '      if mounting as root (sudo), specify a different UID with -u'
 
 #main
 if __name__ == '__main__':
@@ -37,7 +40,7 @@ if __name__ == '__main__':
     parent_dir = '.'
     duration = 60
     
-    opts, leftover = getopt.getopt(sys.argv[1:], "hre:n:b:k:s:t:d:l:")
+    opts, leftover = getopt.getopt(sys.argv[1:], "hre:n:b:k:s:t:d:l:u:")
     options = dict(opts)
     
     if ("-h" in options):
