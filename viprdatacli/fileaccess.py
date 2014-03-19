@@ -7,6 +7,7 @@ import datetime
 import json
 import calendar
 import re
+import pkg_resources
 from viprdata.viprdata import ViprData, FILE_ACCESS_MODE_HEADER, \
   FILE_ACCESS_DURATION_HEADER, FILE_ACCESS_HOST_LIST_HEADER, \
   FILE_ACCESS_USER_HEADER, FILE_ACCESS_START_TOKEN_HEADER, \
@@ -39,8 +40,8 @@ class ViprFileAccess(object):
         response = self.fileaccess_ops["getAccessMode"](namespace, bucket, self.key, self.secret)
         return self._build_bucket_mode_result(response.headers)
 
-    def _set_bucket_mode(self, namespace, bucket, mode, hosts, duration, token, uid):
-        response = self.fileaccess_ops["switchAccessMode"](namespace, bucket, mode, hosts, duration, token, uid, self.key, self.secret)
+    def _set_bucket_mode(self, namespace, bucket, mode, hosts, duration, token, uid, preserve):
+        response = self.fileaccess_ops["switchAccessMode"](namespace, bucket, mode, hosts, duration, token, uid, preserve, self.key, self.secret)
         return self._build_bucket_mode_result(response.headers)
         
     # wait until the mode is pesent
@@ -70,7 +71,7 @@ class ViprFileAccess(object):
         return result
 
 class ViprMount(ViprFileAccess):
-    def __init__(self, api, endpoint, key, secret, namespace, bucket, token, hosts, readonly, uid, duration, parent_dir):
+    def __init__(self, api, endpoint, key, secret, namespace, bucket, token, hosts, readonly, uid, duration, preserve, parent_dir):
         super(ViprMount, self).__init__(api, endpoint, key, secret)
         self.namespace = namespace
         self.bucket = bucket
@@ -79,12 +80,15 @@ class ViprMount(ViprFileAccess):
         self.readonly = readonly
         self.uid = str(uid)
         self.duration = duration
+        self.preserve = preserve
         self.parent_dir = parent_dir
         
     def execute(self):
         print 'exporting %s:%s/%s to %s:%s as %s' % (self.key, self.namespace or '', self.bucket, self.hosts, self.parent_dir, self.uid)
         if (self.token):
             print 'with token ' + self.token
+        if (self.preserve):
+            print 'as originally ingested'
         if (self.readonly):
             print 'read-only'
             mode = 'readOnly'
@@ -175,7 +179,7 @@ class ViprUmount(ViprMount):
                                          mount_info.namespace, mount_info.bucket,
                                          None, mount_info.hosts,
                                          False, mount_info.uid,
-                                         duration, parent_dir)
+                                         duration, False, parent_dir)
         self.end_token = mount_info.token
         self.mount_info = mount_info
 
@@ -321,3 +325,7 @@ class ViprScriptError(Exception):
         
     def __str__(self):
         return repr(self.message)
+
+def cli_version(script):
+    print 'vipr-data v%s' % (pkg_resources.get_distribution('vipr-data').version)
+    print 'vipr-data-cli v%s' % (pkg_resources.get_distribution('vipr-data-cli').version)

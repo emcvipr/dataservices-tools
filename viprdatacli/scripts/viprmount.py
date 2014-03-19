@@ -1,14 +1,14 @@
-#!/usr/bin/python
 import sys
 import os
 import getopt
-from viprdatacli.fileaccess import ViprMount, _get_peer_facing_ip
+from viprdatacli.fileaccess import ViprMount, _get_peer_facing_ip, cli_version
 
 def cliHelp(script_name):
     print 'usage:'
     print '    ' + script_name + ' -b <bucket> -k <access_key> -s <secret_key> [..] [local_dir]'
     print 'other options:'
     print '    -h                 : print this help text'
+    print '    -V                 : print the version of the main library'
     print '    -r                 : mount read-only'
     print '    -e <endpoint>      : specify the data node endpoint (required if'
     print '                         the BOURNE_DATA_IPADDR env var is not set)' 
@@ -24,6 +24,9 @@ def cliHelp(script_name):
     print '    -u <local_uid>     : specify the client uid which should have'
     print '                         access to the mounted files (defaults to the'
     print '                         uid running this script)'
+    print '    -p                 : preserves the paths of objects that were'
+    print '                         originally ingested from an NFS export'
+    print '                         * requires ViPR 1.1+'
     print '    local_dir          : specify the local directory under which mount'
     print '                         points will be created (defaults to .)'
     print '                         unnecessary on Windows (mounts will be'
@@ -32,21 +35,24 @@ def cliHelp(script_name):
     print '      if mounting as root (sudo), specify a different UID with -u'
 
 #main
-if __name__ == '__main__':
+def main():
     #----------------------------------------------------------------------
     # command-line parsing
     #----------------------------------------------------------------------
-    endpoint = key = secret = namespace = bucket = token = readonly = None
+    endpoint = key = secret = namespace = bucket = token = readonly = preserve = None
     parent_dir = '.'
     duration = 60
     
-    opts, leftover = getopt.getopt(sys.argv[1:], "hre:n:b:k:s:t:d:l:u:")
+    opts, leftover = getopt.getopt(sys.argv[1:], "hVre:n:b:k:s:t:d:l:u:p")
     options = dict(opts)
     
     if ("-h" in options):
         cliHelp(sys.argv[0])
-        exit(1)
-        
+        exit(0)
+    if ("-V" in options):
+        cli_version(sys.argv[0])
+        exit(0)
+
     if ("-r" in options):
         readonly = True
     if ("-e" in options):
@@ -69,6 +75,8 @@ if __name__ == '__main__':
         uid = os.getuid()
     if ("-u" in options):
         uid = options["-u"]
+    if ("-p" in options):
+        preserve = True
     api = "s3" #TODO: support swift??
     if (leftover): parent_dir = leftover[0]
     
@@ -86,7 +94,7 @@ if __name__ == '__main__':
     hosts = _get_peer_facing_ip(endpoint)
 
     try:    
-        vmount = ViprMount(api, endpoint, key, secret, namespace, bucket, token, hosts, readonly, uid, duration, parent_dir)
+        vmount = ViprMount(api, endpoint, key, secret, namespace, bucket, token, hosts, readonly, uid, duration, preserve, parent_dir)
         vmount.execute()
     except Exception as e:
         print e

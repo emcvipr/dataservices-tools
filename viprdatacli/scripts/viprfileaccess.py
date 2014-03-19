@@ -1,9 +1,8 @@
-#!/usr/bin/python
 import sys
 import os
 import getopt
 import pprint
-from viprdatacli.fileaccess import ViprFileAccess, _get_peer_facing_ip
+from viprdatacli.fileaccess import ViprFileAccess, _get_peer_facing_ip, cli_version
 
 def print_exports(xml):
     mount_map = {}
@@ -36,6 +35,7 @@ def cliHelp(script_name):
     print '    %s -k <access_key> -s <secret_key> [..] <action> <bucket> [mode]' % script_name
     print 'options:'
     print '    -h                 : print this help text'
+    print '    -V                 : print the version of the main library'
     print '    -e <endpoint>      : specify the data node endpoint (required if'
     print '                         the BOURNE_DATA_IPADDR env var is not set)'
     print '    -k <access_key>    : specify your vipr access_key (this key must'
@@ -53,6 +53,9 @@ def cliHelp(script_name):
     print '    -H <hosts>         : specify the set of hosts allowed to access'
     print '                         the exports (defaults to the host running'
     print '                         this script)'
+    print '    -p                 : preserves the paths of objects that were'
+    print '                         originally ingested from an NFS export'
+    print '                         * requires ViPR 1.1+'
     print '    action             : the action to perform. can be one of [getmode,'
     print '                         setmode, getaccess]'
     print '    bucket             : the bucket containing the objects to export'
@@ -65,23 +68,26 @@ def cliHelp(script_name):
     print '      getaccess will return an error.'
     
 #main
-if __name__ == '__main__':
+def main():
     #----------------------------------------------------------------------
     # command-line parsing
     #----------------------------------------------------------------------
-    action = endpoint = key = secret = namespace = bucket = token = hosts = None
+    action = endpoint = key = secret = namespace = bucket = token = hosts = preserve = None
     duration = 60
     if os.name == "nt":
         uid = 1001 #Registry settings are needed to set the anon UID in Windows
     else:
         uid = os.getuid()
     
-    opts, leftover = getopt.getopt(sys.argv[1:], "he:k:s:n:t:d:u:H:")
+    opts, leftover = getopt.getopt(sys.argv[1:], "hVe:k:s:n:t:d:u:H:p")
     options = dict(opts)
     
     if ("-h" in options):
         cliHelp(sys.argv[0])
-        exit(1)
+        exit(0)
+    if ("-V" in options):
+        cli_version(sys.argv[0])
+        exit(0)
         
     if ("-e" in options):
         endpoint = options["-e"]
@@ -99,6 +105,8 @@ if __name__ == '__main__':
         uid = options["-u"]
     if ("-H" in options):
         hosts = options["-H"]
+    if ("-p" in options):
+        preserve = True
     api = "s3" #TODO: support swift??
     
     # convert to seconds
@@ -132,7 +140,7 @@ if __name__ == '__main__':
         if action == 'getmode':
             pprint.pprint(fa._get_bucket_mode(namespace, bucket))
         elif action == 'setmode':
-            pprint.pprint(fa._set_bucket_mode(namespace, bucket, mode, hosts, duration, token, uid))
+            pprint.pprint(fa._set_bucket_mode(namespace, bucket, mode, hosts, duration, token, uid, preserve))
         elif action == 'getaccess':
             print_exports(fa._get_bucket_access(namespace, bucket))
         else:

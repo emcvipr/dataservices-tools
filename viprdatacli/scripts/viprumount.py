@@ -1,26 +1,29 @@
-#!/usr/bin/python
 import sys
 import getopt
-from viprdatacli.fileaccess import ViprUmount, ViprScriptError
+from viprdatacli.fileaccess import ViprUmount, ViprScriptError, cli_version
 
 def cliHelp(script_name):
     print 'usage: ' + script_name + ' [-h] [local_dir]'
     print 'options:'
     print '    -h                 : print this help text'
+    print '    -V                 : print the version of the main library'
     print '    local_dir          : the local directory under which mount points'
     print '                         were created (defaults to .)'
 
 #main
-if __name__ == '__main__':
+def main():
     #----------------------------------------------------------------------
     # command-line parsing
     #----------------------------------------------------------------------
-    opts, leftover = getopt.getopt(sys.argv[1:], "h")
+    opts, leftover = getopt.getopt(sys.argv[1:], "hV")
     options = dict(opts)
     
     if ("-h" in options):
         cliHelp(sys.argv[0])
-        exit(1)
+        exit(0)
+    if ("-V" in options):
+        cli_version(sys.argv[0])
+        exit(0)
 
     parent_dir = '.'
     if (len(leftover) > 0):

@@ -13,7 +13,7 @@ def read(fname):
 
 setup(
     name='vipr-data-cli',
-    version='0.4.4',
+    version='0.5',
     include_package_data=True,
     description='EMC ViPR data-services: NFS mount scripts for object buckets',
     author='EMC',
@@ -29,11 +29,13 @@ setup(
         'License :: OSI Approved :: BSD License'
     ],
     install_requires=[
-        'vipr-data >= 0.4'
+        'vipr-data >= 0.5, <= 0.5.99'
     ],
-    scripts=[
-        'scripts/viprmount',
-        'scripts/viprumount',
-        'scripts/viprfileaccess'
-    ]
+    entry_points={
+        'console_scripts': [
+            'viprmount = viprdatacli.scripts.viprmount:main',
+            'viprumount = viprdatacli.scripts.viprumount:main',
+            'viprfileaccess = viprdatacli.scripts.viprfileaccess:main'
+        ]
+    }
 )
