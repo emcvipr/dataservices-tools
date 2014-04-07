@@ -1,6 +1,7 @@
 import sys
 import os
 import getopt
+import traceback
 from viprdatacli.fileaccess import ViprMount, _get_peer_facing_ip, cli_version
 
 def cliHelp(script_name):
@@ -8,6 +9,7 @@ def cliHelp(script_name):
     print '    ' + script_name + ' -b <bucket> -k <access_key> -s <secret_key> [..] [local_dir]'
     print 'other options:'
     print '    -h                 : print this help text'
+    print '    -v                 : print traceback on errors'
     print '    -V                 : print the version of the main library'
     print '    -r                 : mount read-only'
     print '    -e <endpoint>      : specify the data node endpoint (required if'
@@ -20,7 +22,7 @@ def cliHelp(script_name):
     print '    -t <token>         : specify the accessmode token; will only'
     print '                         mount objects newer than the token'
     print '    -d <minutes>       : specify the duration the mount will last'
-    print '                         in minutes (defaults to 60 minutes)'
+    print '                         in minutes (defaults to 12 hours)'
     print '    -u <local_uid>     : specify the client uid which should have'
     print '                         access to the mounted files (defaults to the'
     print '                         uid running this script)'
@@ -41,9 +43,9 @@ def main():
     #----------------------------------------------------------------------
     endpoint = key = secret = namespace = bucket = token = readonly = preserve = None
     parent_dir = '.'
-    duration = 60
+    duration = 60 * 12
     
-    opts, leftover = getopt.getopt(sys.argv[1:], "hVre:n:b:k:s:t:d:l:u:p")
+    opts, leftover = getopt.getopt(sys.argv[1:], "hvVre:n:b:k:s:t:d:l:u:p")
     options = dict(opts)
     
     if ("-h" in options):
@@ -97,5 +99,9 @@ def main():
         vmount = ViprMount(api, endpoint, key, secret, namespace, bucket, token, hosts, readonly, uid, duration, preserve, parent_dir)
         vmount.execute()
     except Exception as e:
-        print e
+        print 'There was an error:'
+        if "-v" in options:
+            print traceback.format_exc()
+        else:
+            print e.message
         exit(2)

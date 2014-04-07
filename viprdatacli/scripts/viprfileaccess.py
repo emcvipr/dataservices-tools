@@ -2,6 +2,7 @@ import sys
 import os
 import getopt
 import pprint
+import traceback
 from viprdatacli.fileaccess import ViprFileAccess, _get_peer_facing_ip, cli_version
 
 def print_exports(xml):
@@ -35,6 +36,7 @@ def cliHelp(script_name):
     print '    %s -k <access_key> -s <secret_key> [..] <action> <bucket> [mode]' % script_name
     print 'options:'
     print '    -h                 : print this help text'
+    print '    -v                 : print traceback on errors'
     print '    -V                 : print the version of the main library'
     print '    -e <endpoint>      : specify the data node endpoint (required if'
     print '                         the BOURNE_DATA_IPADDR env var is not set)'
@@ -46,7 +48,7 @@ def cliHelp(script_name):
     print '                         newer than or disable objects older than the'
     print '                         token'
     print '    -d <minutes>       : specify the duration the export will last'
-    print '                         in minutes (defaults to 60 minutes)'
+    print '                         in minutes (defaults to 12 hours)'
     print '    -u <local_uid>     : specify the client uid which should have'
     print '                         access to the mounted files (defaults to the'
     print '                         uid running this script)'
@@ -73,13 +75,13 @@ def main():
     # command-line parsing
     #----------------------------------------------------------------------
     action = endpoint = key = secret = namespace = bucket = token = hosts = preserve = None
-    duration = 60
+    duration = 60 * 12
     if os.name == "nt":
         uid = 1001 #Registry settings are needed to set the anon UID in Windows
     else:
         uid = os.getuid()
     
-    opts, leftover = getopt.getopt(sys.argv[1:], "hVe:k:s:n:t:d:u:H:p")
+    opts, leftover = getopt.getopt(sys.argv[1:], "hvVe:k:s:n:t:d:u:H:p")
     options = dict(opts)
     
     if ("-h" in options):
@@ -147,5 +149,9 @@ def main():
             cliHelp(sys.argv[0])
             exit(1)
     except Exception as e:
-        print e
+        print 'There was an error:'
+        if "-v" in options:
+            print traceback.format_exc()
+        else:
+            print e.message
         exit(2)

@@ -1,4 +1,3 @@
-import sys
 import os
 import time
 import subprocess
@@ -50,9 +49,12 @@ class ViprFileAccess(object):
         while True:
             response = self.fileaccess_ops["getAccessMode"](namespace, bucket, self.key, self.secret)
             h = response.headers
-            if (h[FILE_ACCESS_MODE_HEADER] and h[FILE_ACCESS_MODE_HEADER].lower() == mode.lower()):
-                # print 'bucket state: ' + mode
-                break
+            if h[FILE_ACCESS_MODE_HEADER]:
+                if (mode and h[FILE_ACCESS_MODE_HEADER].lower() == mode.lower())\
+                        or (mode is None and not h[FILE_ACCESS_MODE_HEADER].startswith('switchingTo')):
+                    # print 'bucket state: ' + mode
+                    break
+
             # print 'sleep 2s'
             time.sleep(2)
         print 'switched to ' + mode
@@ -206,8 +208,8 @@ class ViprUmount(ViprMount):
         mode = 'disabled'
         self._set_bucket_mode(self.namespace, self.bucket, mode, self.hosts, None,
                               self.end_token, self.uid)
-        # TODO: handle parallel workflows here (might not end up in "disabled")
-        #self._wait_for(self.namespace, self.bucket, mode)
+        # just wait for a non-transitioning state (might not end up in "disabled")
+        self._wait_for(self.namespace, self.bucket)
         
         # delete config file if successful
         self.mount_info.clean()
