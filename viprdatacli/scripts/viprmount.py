@@ -4,7 +4,8 @@ import getopt
 import traceback
 from viprdatacli.fileaccess import ViprMount, _get_peer_facing_ip, cli_version
 
-def cliHelp(script_name):
+
+def cli_help(script_name):
     print 'usage:'
     print '    ' + script_name + ' -b <bucket> -k <access_key> -s <secret_key> [..] [local_dir]'
     print 'other options:'
@@ -36,6 +37,7 @@ def cliHelp(script_name):
     print 'NOTE: specifying a client UID of 0 is not recommended and may fail.'
     print '      if mounting as root (sudo), specify a different UID with -u'
 
+
 #main
 def main():
     #----------------------------------------------------------------------
@@ -48,55 +50,57 @@ def main():
     opts, leftover = getopt.getopt(sys.argv[1:], "hvVre:n:b:k:s:t:d:l:u:p")
     options = dict(opts)
     
-    if ("-h" in options):
-        cliHelp(sys.argv[0])
+    if "-h" in options:
+        cli_help(sys.argv[0])
         exit(0)
-    if ("-V" in options):
+    if "-V" in options:
         cli_version(sys.argv[0])
         exit(0)
 
-    if ("-r" in options):
+    if "-r" in options:
         readonly = True
-    if ("-e" in options):
+    if "-e" in options:
         endpoint = options["-e"]
-    if ("-n" in options):
+    if "-n" in options:
         namespace = options["-n"]
-    if ("-b" in options):
+    if "-b" in options:
         bucket = options["-b"]
-    if ("-k" in options):
+    if "-k" in options:
         key = options["-k"]
-    if ("-s" in options):
+    if "-s" in options:
         secret = options["-s"]
-    if ("-t" in options):
+    if "-t" in options:
         token = options["-t"]
-    if ("-d" in options):
+    if "-d" in options:
         duration = options["-d"]
     if os.name == "nt":
-        uid = 1001 #Registry settings are needed to set the anon UID in Windows
+        uid = 1001  # Registry settings are needed to set the anon UID in Windows
     else:
         uid = os.getuid()
-    if ("-u" in options):
+    if "-u" in options:
         uid = options["-u"]
-    if ("-p" in options):
+    if "-p" in options:
         preserve = True
-    api = "s3" #TODO: support swift??
-    if (leftover): parent_dir = leftover[0]
+    api = "s3"  # TODO: support swift??
+    if leftover:
+        parent_dir = leftover[0]
     
-    if (not bucket or not key or not secret):
-        cliHelp(sys.argv[0])
+    if not bucket or not key or not secret:
+        cli_help(sys.argv[0])
         exit(1)
     
-    if (not endpoint):
+    if not endpoint:
         try:
             endpoint = os.environ['BOURNE_DATA_IPADDR']
-        except:
+        except KeyError:
             print 'you must specify an endpoint with -e <endpoint> or in the BOURNE_DATA_IPADDR env var'
             exit(1)
     
     hosts = _get_peer_facing_ip(endpoint)
 
     try:    
-        vmount = ViprMount(api, endpoint, key, secret, namespace, bucket, token, hosts, readonly, uid, duration, preserve, parent_dir)
+        vmount = ViprMount(api, endpoint, key, secret, namespace, bucket, token, hosts, readonly, uid, duration,
+                           preserve, parent_dir)
         vmount.execute()
     except Exception as e:
         print 'There was an error:'

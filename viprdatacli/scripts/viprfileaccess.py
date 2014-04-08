@@ -5,17 +5,19 @@ import pprint
 import traceback
 from viprdatacli.fileaccess import ViprFileAccess, _get_peer_facing_ip, cli_version
 
+
 def print_exports(xml):
     mount_map = {}
     mounts = xml['mountPoints']
-    if type(mounts) != list: mounts = [mounts]
+    if type(mounts) != list:
+        mounts = [mounts]
     print 'all exports:'
     for mount in mounts:
         print '--%s' % mount
         mount_map[no_unicode(mount)] = []
     for obj in xml['objects']:
         mount_map[no_unicode(obj['deviceExport'])].append({no_unicode(obj['name']): no_unicode(obj['relativePath'])})
-    
+
     print
     for mount in mount_map:
         print 'objects under export'
@@ -26,12 +28,14 @@ def print_exports(xml):
                 print'------object_path: %s' % obj[name]
         print
 
+
 def no_unicode(string):
     if type(string) == unicode:
         return string.encode()
     return string
 
-def cliHelp(script_name):
+
+def cli_help(script_name):
     print 'usage:'
     print '    %s -k <access_key> -s <secret_key> [..] <action> <bucket> [mode]' % script_name
     print 'options:'
@@ -68,85 +72,91 @@ def cliHelp(script_name):
     print 'Note: you must call setmode to set the mode of the bucket to'
     print '      readOnly or readWrite before calling getaccess, otherwise'
     print '      getaccess will return an error.'
-    
-#main
+
+
+# main
 def main():
     #----------------------------------------------------------------------
     # command-line parsing
     #----------------------------------------------------------------------
-    action = endpoint = key = secret = namespace = bucket = token = hosts = preserve = None
+    action = mode = endpoint = key = secret = namespace = bucket = token = hosts = preserve = None
     duration = 60 * 12
     if os.name == "nt":
-        uid = 1001 #Registry settings are needed to set the anon UID in Windows
+        uid = 1001  # Registry settings are needed to set the anon UID in Windows
     else:
         uid = os.getuid()
-    
+
     opts, leftover = getopt.getopt(sys.argv[1:], "hvVe:k:s:n:t:d:u:H:p")
     options = dict(opts)
-    
-    if ("-h" in options):
-        cliHelp(sys.argv[0])
+
+    if "-h" in options:
+        cli_help(sys.argv[0])
         exit(0)
-    if ("-V" in options):
+    if "-V" in options:
         cli_version(sys.argv[0])
         exit(0)
-        
-    if ("-e" in options):
+
+    if "-e" in options:
         endpoint = options["-e"]
-    if ("-k" in options):
+    if "-k" in options:
         key = options["-k"]
-    if ("-s" in options):
+    if "-s" in options:
         secret = options["-s"]
-    if ("-n" in options):
+    if "-n" in options:
         namespace = options["-n"]
-    if ("-t" in options):
+    if "-t" in options:
         token = options["-t"]
-    if ("-d" in options):
+    if "-d" in options:
         duration = options["-d"]
-    if ("-u" in options):
+    if "-u" in options:
         uid = options["-u"]
-    if ("-H" in options):
+    if "-H" in options:
         hosts = options["-H"]
-    if ("-p" in options):
+    if "-p" in options:
         preserve = True
-    api = "s3" #TODO: support swift??
-    
+    api = "s3"  # TODO: support swift??
+
     # convert to seconds
     try:
         duration = int(duration) * 60
     except ValueError:
         print 'duration must be a number (minutes)'
         exit(1)
-    
-    if (leftover and len(leftover) >= 2):
+
+    if leftover and len(leftover) >= 2:
         action = leftover[0]
         bucket = leftover[1]
-        if (len(leftover) >= 3): mode = leftover[2]
-    
-    if (not key or not secret or not bucket or not action):
-        cliHelp(sys.argv[0])
+        if len(leftover) >= 3:
+            mode = leftover[2]
+
+    if not key or not secret or not bucket or not action:
+        cli_help(sys.argv[0])
         exit(1)
-    
-    if (not endpoint):
+
+    if not endpoint:
         try:
             endpoint = os.environ['BOURNE_DATA_IPADDR']
-        except:
+        except KeyError:
             print 'you must specify an endpoint with -e <endpoint> or in the BOURNE_DATA_IPADDR env var'
             exit(1)
-    
-    if (not hosts): hosts = _get_peer_facing_ip(endpoint)
-    
+
+    if not hosts:
+        hosts = _get_peer_facing_ip(endpoint)
+
     fa = ViprFileAccess(api, endpoint, key, secret)
-    
+
     try:
         if action == 'getmode':
-            pprint.pprint(fa._get_bucket_mode(namespace, bucket))
+            pprint.pprint(fa.get_bucket_mode(namespace, bucket))
         elif action == 'setmode':
-            pprint.pprint(fa._set_bucket_mode(namespace, bucket, mode, hosts, duration, token, uid, preserve))
+            if not mode:
+                print 'mode must be specified'
+                exit(1)
+            pprint.pprint(fa.set_bucket_mode(namespace, bucket, mode, hosts, duration, token, uid, preserve))
         elif action == 'getaccess':
-            print_exports(fa._get_bucket_access(namespace, bucket))
+            print_exports(fa.get_bucket_access(namespace, bucket))
         else:
-            cliHelp(sys.argv[0])
+            cli_help(sys.argv[0])
             exit(1)
     except Exception as e:
         print 'There was an error:'

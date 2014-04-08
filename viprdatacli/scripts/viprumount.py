@@ -1,10 +1,10 @@
 import sys
 import getopt
 import traceback
-from viprdatacli.fileaccess import ViprUmount, ViprScriptError, cli_version
+from viprdatacli.fileaccess import ViprUmount, cli_version
 
 
-def cliHelp(script_name):
+def cli_help(script_name):
     print 'usage: ' + script_name + ' [-h] [local_dir]'
     print 'options:'
     print '    -h                 : print this help text'
@@ -13,25 +13,26 @@ def cliHelp(script_name):
     print '    local_dir          : the local directory under which mount points'
     print '                         were created (defaults to .)'
 
-#main
+
+# main
 def main():
     #----------------------------------------------------------------------
     # command-line parsing
     #----------------------------------------------------------------------
     opts, leftover = getopt.getopt(sys.argv[1:], "hvV")
     options = dict(opts)
-    
-    if ("-h" in options):
-        cliHelp(sys.argv[0])
+
+    if "-h" in options:
+        cli_help(sys.argv[0])
         exit(0)
-    if ("-V" in options):
+    if "-V" in options:
         cli_version(sys.argv[0])
         exit(0)
 
     parent_dir = '.'
-    if (len(leftover) > 0):
+    if len(leftover) > 0:
         parent_dir = leftover[0]
-    
+
     try:
         vumount = ViprUmount(parent_dir)
         vumount.execute()
