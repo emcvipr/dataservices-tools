@@ -163,7 +163,7 @@ class ViprMount(ViprFileAccess):
             print "%s\t%s" % (obj['name'], path)
 
     def _write_config(self, mounts, token):
-        expires = datetime.datetime.now() + datetime.timedelta(seconds=self.duration)
+        expires = datetime.datetime.now() + datetime.timedelta(seconds=int(self.duration))
         mount_info = ViprMountInfo(parent_dir=self.parent_dir,
                                    api=self.api,
                                    endpoint=self.endpoint,
