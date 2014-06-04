@@ -47,7 +47,7 @@ class ViprFileAccess(object):
 
     # wait until the mode is pesent
     def _wait_for(self, namespace, bucket, mode):
-        print 'waiting for bucket %s to be in mode %s' % (bucket, mode)
+        print 'waiting for bucket %s to be in %s mode' % (bucket, mode or 'target')
         while True:
             response = self.fileaccess_ops["getAccessMode"](namespace, bucket, self.key, self.secret)
             h = response.headers
@@ -59,7 +59,7 @@ class ViprFileAccess(object):
 
             # print 'sleep 2s'
             time.sleep(2)
-        print 'switched to ' + mode
+        print 'switched to %s mode' % (mode or 'target')
 
     def get_bucket_access(self, namespace, bucket):
         falist = self.fileaccess_ops["getFileList"](namespace, bucket, self.key, self.secret)
@@ -213,7 +213,7 @@ class ViprUmount(ViprMount):
         self._write_config(mounts, self.end_token)
 
         #disable fs access for bucket
-        print 'disabling file access for %s:%s/%s' % (self.key, self.namespace, self.bucket)
+        print 'disabling file access for %s:%s/%s' % (self.key, self.namespace or '', self.bucket)
         if self.end_token:
             print 'with token ' + self.end_token
         mode = 'disabled'
